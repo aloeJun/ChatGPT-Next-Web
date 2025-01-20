@@ -2,18 +2,29 @@
 import "./styles/globals.scss";
 import "./styles/markdown.scss";
 import "./styles/highlight.scss";
-import { getBuildConfig } from "./config/build";
+import { getClientConfig } from "./config/client";
+import type { Metadata, Viewport } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { GoogleTagManager, GoogleAnalytics } from "@next/third-parties/google";
+import { getServerSideConfig } from "./config/server";
 
-const buildConfig = getBuildConfig();
-
-export const metadata = {
-  title: "ChatGPT Next Web",
+export const metadata: Metadata = {
+  title: "NextChat",
   description: "Your personal ChatGPT Chat Bot.",
   appleWebApp: {
-    title: "ChatGPT Next Web",
+    title: "NextChat",
     statusBarStyle: "default",
   },
-  themeColor: "#fafafa",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#151515" },
+  ],
 };
 
 export default function RootLayout({
@@ -21,28 +32,41 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const serverConfig = getServerSideConfig();
+
   return (
     <html lang="en">
       <head>
+        <meta name="config" content={JSON.stringify(getClientConfig())} />
         <meta
           name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
-        <meta
-          name="theme-color"
-          content="#151515"
-          media="(prefers-color-scheme: dark)"
-        />
-        <meta name="version" content={buildConfig.commitId} />
-        <link rel="manifest" href="/site.webmanifest"></link>
-        <link rel="preconnect" href="https://fonts.proxy.ustclug.org"></link>
         <link
-          href="https://fonts.proxy.ustclug.org/css2?family=Noto+Sans+SC:wght@300;400;700;900&display=swap"
-          rel="stylesheet"
+          rel="manifest"
+          href="/site.webmanifest"
+          crossOrigin="use-credentials"
         ></link>
         <script src="/serviceWorkerRegister.js" defer></script>
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {serverConfig?.isVercel && (
+          <>
+            <SpeedInsights />
+          </>
+        )}
+        {serverConfig?.gtmId && (
+          <>
+            <GoogleTagManager gtmId={serverConfig.gtmId} />
+          </>
+        )}
+        {serverConfig?.gaId && (
+          <>
+            <GoogleAnalytics gaId={serverConfig.gaId} />
+          </>
+        )}
+      </body>
     </html>
   );
 }
